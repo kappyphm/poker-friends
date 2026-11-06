@@ -410,6 +410,17 @@ io.on('connection', async (socket) => {
       let seatIndex = -1;
       for (let i = 0; i < row.seats; i++) if (!usedSeats.has(i)) { seatIndex = i; break; }
       if (seatIndex === -1) return fail('Bàn đã đầy');
+      // Reserve the seat SYNCHRONOUSLY before any await, otherwise concurrent
+      // joins compute the same free seat and overwrite each other.
+      const seat: SeatPlayer = {
+        userId, name: user.name, avatarUrl: user.avatarUrl,
+        seatIndex, stack: buyIn, sessionId: '',
+        connected: true, reservedUntil: null, sittingOut: false,
+        inHand: false, holeCards: [], folded: false, allIn: false,
+        betStreet: 0, totalContributed: 0, acted: false, showCards: false, lastAction: null,
+      };
+      t.seats.set(seatIndex, seat);
+      t.spectators.delete(userId);
       // open a new session row if none active for this table
       const activeSess = await db.select().from(schema.tableSessions).where(and(
         eq(schema.tableSessions.tableId, row.id),
@@ -429,15 +440,7 @@ io.on('connection', async (socket) => {
         }).where(eq(schema.tableSessions.id, sessionRow.id));
         sessionRow = { ...sessionRow, totalBuyIn: sessionRow.totalBuyIn + buyIn, rebuyCount: sessionRow.rebuyCount + 1 };
       }
-      const seat: SeatPlayer = {
-        userId, name: user.name, avatarUrl: user.avatarUrl,
-        seatIndex, stack: buyIn, sessionId: sessionRow.id,
-        connected: true, reservedUntil: null, sittingOut: false,
-        inHand: false, holeCards: [], folded: false, allIn: false,
-        betStreet: 0, totalContributed: 0, acted: false, showCards: false, lastAction: null,
-      };
-      t.seats.set(seatIndex, seat);
-      t.spectators.delete(userId);
+      seat.sessionId = sessionRow.id;
       broadcastState(t);
     } catch (e) { console.error(e); fail('Có lỗi khi vào bàn'); }
   });
