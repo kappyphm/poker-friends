@@ -1,7 +1,115 @@
 @import "tailwindcss";
 
+/* Pastel theme tokens. Runtime values live in CSS variables switched by
+   [data-theme] on <html>; utilities below are generated from these tokens. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-inset: var(--inset);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-felt: var(--felt);
+  --color-rail: var(--rail);
+  --color-feltink: var(--felt-ink);
+  --color-feltmuted: var(--felt-muted);
+  --color-accent: var(--accent);
+  --color-accentink: var(--accent-ink);
+  --color-lav: var(--lav);
+  --color-lavink: var(--lav-ink);
+  --color-fold: var(--fold);
+  --color-foldink: var(--fold-ink);
+  --color-call: var(--call);
+  --color-callink: var(--call-ink);
+  --color-raise: var(--raise);
+  --color-raiseink: var(--raise-ink);
+  --color-cardback: var(--cardback);
+  --color-cardbackline: var(--cardback-line);
+  --color-dangerbg: var(--danger-bg);
+  --color-dangerline: var(--danger-line);
+  --color-dangerink: var(--danger-ink);
+  --color-infobg: var(--info-bg);
+  --color-infoline: var(--info-line);
+  --color-infoink: var(--info-ink);
+  --color-win: var(--win);
+  --color-lose: var(--lose);
+}
+
+/* Dark theme (default) */
+:root,
+:root[data-theme="dark"] {
+  --bg: #262030;
+  --surface: #342c42;
+  --inset: #3e3550;
+  --line: #4e4462;
+  --ink: #f2edf7;
+  --muted: #b9aecb;
+  --felt: #40614e;
+  --rail: #6e5138;
+  --felt-ink: #eef6ee;
+  --felt-muted: rgba(238, 246, 238, 0.72);
+  --accent: #7fc79b;
+  --accent-ink: #0f3520;
+  --lav: #b7a8e0;
+  --lav-ink: #2c2150;
+  --fold: #e3a0a4;
+  --fold-ink: #4a171c;
+  --call: #93d3ac;
+  --call-ink: #103d24;
+  --raise: #f0c184;
+  --raise-ink: #4e2f08;
+  --cardback: #57719f;
+  --cardback-line: #42597f;
+  --danger-bg: #4a2c33;
+  --danger-line: #7a4750;
+  --danger-ink: #f3c2c6;
+  --info-bg: #2e3a55;
+  --info-line: #48597e;
+  --info-ink: #c3d2f0;
+  --win: #8fd6a8;
+  --lose: #f0a49c;
+}
+
+/* Light theme */
+:root[data-theme="light"] {
+  --bg: #faf6ef;
+  --surface: #ffffff;
+  --inset: #f4eee3;
+  --line: #e4daca;
+  --ink: #3c4348;
+  --muted: #6f7a72;
+  --felt: #afdcbe;
+  --rail: #d8bfa3;
+  --felt-ink: #23402e;
+  --felt-muted: rgba(35, 64, 46, 0.72);
+  --accent: #8fd0a8;
+  --accent-ink: #17452b;
+  --lav: #d9cff2;
+  --lav-ink: #443a6b;
+  --fold: #f7c8c8;
+  --fold-ink: #7c2d33;
+  --call: #bde8cc;
+  --call-ink: #1d5c38;
+  --raise: #fbdcae;
+  --raise-ink: #7a4a10;
+  --cardback: #aec6e8;
+  --cardback-line: #8fadd9;
+  --danger-bg: #fbe7e4;
+  --danger-line: #f0bdb4;
+  --danger-ink: #93392f;
+  --info-bg: #e3ecfa;
+  --info-line: #b7cdf0;
+  --info-ink: #2f4e7e;
+  --win: #2e7d4f;
+  --lose: #c0453e;
+}
+
 body {
-  background-color: #0a0f0d;
-  color: #e8ece9;
+  background-color: var(--bg);
+  color: var(--ink);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+input[type="range"] {
+  accent-color: var(--raise);
 }

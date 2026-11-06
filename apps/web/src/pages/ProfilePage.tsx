@@ -11,15 +11,15 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   useEffect(() => { api<Stats>('/api/me/stats').then(setStats).catch(() => {}); }, []);
-  if (!user) return <div className="max-w-md mx-auto py-16 text-center text-neutral-400">Hãy đăng nhập để xem hồ sơ.</div>;
+  if (!user) return <div className="max-w-md mx-auto py-16 text-center text-muted">Hãy đăng nhập để xem hồ sơ.</div>;
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
       <div className="flex items-center gap-4 mb-8">
         {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="w-16 h-16 rounded-full" />
-          : <span className="w-16 h-16 rounded-full bg-neutral-700 flex items-center justify-center text-2xl">{user.name[0]}</span>}
+          : <span className="w-16 h-16 rounded-full bg-lav text-lavink flex items-center justify-center text-2xl">{user.name[0]}</span>}
         <div>
           <h1 className="text-2xl font-bold">{user.name}</h1>
-          <div className="text-neutral-400">{user.email}</div>
+          <div className="text-muted">{user.email}</div>
         </div>
       </div>
       {stats && (
@@ -32,8 +32,8 @@ export default function ProfilePage() {
             ['Tổng chip đã buy-in', fmt(stats.totalBuyIn)],
             ['Tổng lãi/lỗ', `${stats.totalNet >= 0 ? '+' : ''}${fmt(stats.totalNet)}`],
           ].map(([label, value]) => (
-            <div key={label} className="bg-white/5 border border-white/10 rounded-xl px-4 py-4">
-              <div className="text-sm text-neutral-400">{label}</div>
+            <div key={label} className="bg-surface border border-line rounded-xl px-4 py-4">
+              <div className="text-sm text-muted">{label}</div>
               <div className="text-xl font-bold mt-1">{value}</div>
             </div>
           ))}
