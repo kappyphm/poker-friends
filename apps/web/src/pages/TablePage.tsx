@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { io, type Socket } from 'socket.io-client';
 import { api, fmt } from '../lib';
 import { useAuth } from '../App';
-import { PlayingCard, ChipStack, ChipDot } from '../components/cards';
+import { PlayingCard } from '../components/cards';
 
 interface PlayerState {
   userId: string; name: string; avatarUrl: string | null; seatIndex: number;
@@ -33,14 +33,6 @@ const ACTION_VI: Record<string, string> = {
   fold: 'Úp bỏ', check: 'Check', call: 'Call', raise: 'Raise', 'all-in': 'All-in',
   'small-blind': 'Small Blind', 'big-blind': 'Big Blind',
 };
-
-function seatPos(index: number, total: number): { left: string; top: string } {
-  const angle = (-90 + (360 / total) * index) * (Math.PI / 180);
-  return {
-    left: `${50 + 45 * Math.cos(angle)}%`,
-    top: `${50 + 42 * Math.sin(angle)}%`,
-  };
-}
 
 export default function TablePage() {
   const { code } = useParams();
@@ -104,6 +96,48 @@ export default function TablePage() {
   const toCall = state && me ? state.currentBet - me.bet : 0;
   const timerPct = state?.turnDeadline ? Math.max(0, Math.min(100, ((state.turnDeadline - now) / 30000) * 100)) : 0;
 
+  const seatEntries = state
+    ? Array.from({ length: state.seatsCount }, (_, i) => ({
+        seatIndex: i,
+        player: state.players.find((x) => x.seatIndex === i) ?? null,
+      }))
+    : [];
+  const bottomPlayer = state && !state.isSpectator ? (me ?? null) : null;
+  const topEntries = seatEntries.filter((e) => !bottomPlayer || !e.player || e.player.userId !== bottomPlayer.userId);
+
+  const renderSeat = (p: PlayerState, mine: boolean) => (
+    <div key={p.userId} className="flex flex-col items-center">
+      <div className={`${mine ? 'w-52' : 'w-36'} rounded-xl px-2 py-2 text-center bg-black/70 border ${p.isTurn ? 'border-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.5)]' : 'border-white/15'} ${p.folded ? 'opacity-50' : ''}`}>
+        <div className="flex items-center justify-center gap-1.5">
+          <span title={p.connected ? 'Đang trực tuyến' : 'Mất kết nối'} className={`w-2.5 h-2.5 rounded-full shrink-0 ${p.connected ? 'bg-emerald-400' : 'bg-red-500'}`} />
+          {p.avatarUrl ? <img src={p.avatarUrl} alt="" className="w-6 h-6 rounded-full" /> : <span className="w-6 h-6 rounded-full bg-neutral-700 inline-flex items-center justify-center text-xs">{p.name[0]}</span>}
+          <span className={`${mine ? 'text-base' : 'text-sm'} font-semibold truncate max-w-24`}>{p.name}</span>
+          {p.isDealer && <span className="text-[10px] bg-white text-black rounded-full px-1.5 font-bold">D</span>}
+          {p.sittingOut && <span className="text-[10px] bg-neutral-700 rounded px-1">Vắng</span>}
+          {p.allIn && <span className="text-[10px] bg-red-700 rounded px-1">All-in</span>}
+        </div>
+        <div className="text-xs text-neutral-300">{fmt(p.stack)} chip</div>
+        {p.isTurn && state?.turnDeadline && (
+          <div className="h-1 bg-white/10 rounded mt-1 overflow-hidden">
+            <div className="h-full bg-emerald-400 transition-all" style={{ width: `${timerPct}%` }} />
+          </div>
+        )}
+        {(p.cards || p.cardsHidden) && (
+          <div className="flex gap-1 justify-center mt-1">
+            {p.cards
+              ? p.cards.map((c, j) => mine ? <PlayingCard key={j} card={c} /> : <PlayingCard key={j} card={c} small />)
+              : [<PlayingCard key="a" faceDown small />, <PlayingCard key="b" faceDown small />]}
+          </div>
+        )}
+        {p.handName && <div className="text-[11px] text-emerald-300 mt-0.5">{p.handName}</div>}
+        {p.lastAction && p.inHand && <div className="text-[11px] text-neutral-400">{ACTION_VI[p.lastAction] ?? p.lastAction}</div>}
+      </div>
+      {p.bet > 0 && (
+        <div className="mt-1 text-xs text-neutral-100 bg-black/50 rounded-full px-2 py-0.5">Cược: {fmt(p.bet)} chip</div>
+      )}
+    </div>
+  );
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="flex items-center gap-4 mb-4 flex-wrap">
@@ -147,11 +181,17 @@ export default function TablePage() {
 
       {joined && state && (
         <>
-          {/* Felt table */}
-          <div className="relative mx-auto" style={{ width: 'min(920px, 96vw)', height: 520 }}>
-            <div className="absolute inset-6 rounded-[50%] bg-[#14532d] border-[10px] border-[#3f2d20] shadow-[inset_0_0_80px_rgba(0,0,0,0.6)]" />
-            {/* center */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-10">
+          {/* Rectangular felt table */}
+          <div className="mx-auto rounded-3xl bg-[#14532d] border-[10px] border-[#3f2d20] shadow-[inset_0_0_80px_rgba(0,0,0,0.6)] px-3 py-4 flex flex-col gap-3"
+            style={{ width: 'min(920px, 96vw)', minHeight: 520 }}>
+            {/* top edge: all other players + empty seats */}
+            <div className="flex flex-wrap justify-center items-start gap-2">
+              {topEntries.map((e) => e.player ? renderSeat(e.player, false) : (
+                <div key={e.seatIndex} className="w-28 text-center text-neutral-500 text-xs border border-dashed border-white/15 rounded-xl py-3 bg-black/30">Ghế trống</div>
+              ))}
+            </div>
+            {/* center: board + pot */}
+            <div className="flex-1 flex flex-col items-center justify-center text-center py-2">
               <div className="flex gap-1.5 justify-center mb-2">
                 {[0, 1, 2, 3, 4].map((i) => state.board[i]
                   ? <PlayingCard key={i} card={state.board[i]} />
@@ -161,70 +201,13 @@ export default function TablePage() {
               <div className="font-bold text-lg">Pot: {fmt(state.pot)} chip</div>
               {state.handNumber > 0 && <div className="text-xs text-neutral-300">Ván #{state.handNumber}</div>}
             </div>
-            {/* seats */}
-            {Array.from({ length: state.seatsCount }).map((_, i) => {
-              const p = state.players.find((x) => x.seatIndex === i);
-              const pos = seatPos(i, state.seatsCount);
-              if (!p) {
-                return (
-                  <div key={i} className="absolute -translate-x-1/2 -translate-y-1/2 z-20" style={pos}>
-                    <div className="w-24 text-center text-neutral-500 text-xs border border-dashed border-white/15 rounded-xl py-3 bg-black/30">Ghế trống</div>
-                  </div>
-                );
-              }
-              return (
-                <div key={i} className="absolute -translate-x-1/2 -translate-y-1/2 z-20" style={pos}>
-                  <div className={`w-36 rounded-xl px-2 py-2 text-center bg-black/70 border ${p.isTurn ? 'border-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.5)]' : 'border-white/15'} ${p.folded ? 'opacity-50' : ''}`}>
-                    <div className="flex items-center justify-center gap-1.5">
-                      {p.avatarUrl ? <img src={p.avatarUrl} alt="" className="w-6 h-6 rounded-full" /> : <span className="w-6 h-6 rounded-full bg-neutral-700 inline-flex items-center justify-center text-xs">{p.name[0]}</span>}
-                      <span className="text-sm font-semibold truncate max-w-20">{p.name}</span>
-                      {p.isDealer && <span className="text-[10px] bg-white text-black rounded-full px-1.5 font-bold">D</span>}
-                      {!p.connected && <span className="text-[10px] bg-red-800 rounded px-1">Mất kết nối</span>}
-                      {p.sittingOut && <span className="text-[10px] bg-neutral-700 rounded px-1">Vắng</span>}
-                      {p.allIn && <span className="text-[10px] bg-red-700 rounded px-1">All-in</span>}
-                    </div>
-                    <div className="text-xs text-neutral-300">{fmt(p.stack)} chip</div>
-                    {p.isTurn && state.turnDeadline && (
-                      <div className="h-1 bg-white/10 rounded mt-1 overflow-hidden">
-                        <div className="h-full bg-emerald-400 transition-all" style={{ width: `${timerPct}%` }} />
-                      </div>
-                    )}
-                    {(p.cards || p.cardsHidden) && (
-                      <div className="flex gap-1 justify-center mt-1">
-                        {p.cards
-                          ? p.cards.map((c, j) => <PlayingCard key={j} card={c} small />)
-                          : [<PlayingCard key="a" faceDown small />, <PlayingCard key="b" faceDown small />]}
-                      </div>
-                    )}
-                    {p.handName && <div className="text-[11px] text-emerald-300 mt-0.5">{p.handName}</div>}
-                    {p.lastAction && p.inHand && <div className="text-[11px] text-neutral-400">{ACTION_VI[p.lastAction] ?? p.lastAction}</div>}
-                  </div>
-                  {p.bet > 0 && (
-                    <div className="flex items-center gap-1 justify-center mt-1">
-                      <ChipDot amount={p.bet} /><span className="text-xs">{fmt(p.bet)}</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* my cards + chips */}
-          {me && (
-            <div className="flex items-center justify-center gap-6 mt-2">
-              <div className="text-center">
-                <div className="text-xs text-neutral-400 mb-1">Chip của bạn</div>
-                <div className="font-bold text-lg">{fmt(me.stack)}</div>
-                <ChipStack amount={me.stack} />
+            {/* bottom edge: current player */}
+            {bottomPlayer && (
+              <div className="flex justify-center">
+                {renderSeat(bottomPlayer, true)}
               </div>
-              {me.inHand && me.cards && (
-                <div className="text-center">
-                  <div className="text-xs text-neutral-400 mb-1">Bài tẩy của bạn</div>
-                  <div className="flex gap-1">{me.cards.map((c, j) => <PlayingCard key={j} card={c} />)}</div>
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
           {/* host controls / waiting */}
           {!state.handInProgress && (
