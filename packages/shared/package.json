@@ -1,0 +1,19 @@
+{
+  "name": "@poker/shared",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.json"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "typescript": "~7.0.2",
+    "vitest": "^5.1.0"
+  },
+  "types": "dist/index.d.ts"
+}
