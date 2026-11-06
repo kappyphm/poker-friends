@@ -105,34 +105,40 @@ export default function TablePage() {
   const bottomPlayer = state && !state.isSpectator ? (me ?? null) : null;
   const topEntries = seatEntries.filter((e) => !bottomPlayer || !e.player || e.player.userId !== bottomPlayer.userId);
 
-  const renderSeat = (p: PlayerState, mine: boolean) => (
-    <div key={p.userId} className="flex flex-col items-center">
-      <div className={`${mine ? 'w-52' : 'w-36'} rounded-xl px-2 py-2 text-center bg-black/70 border ${p.isTurn ? 'border-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.5)]' : 'border-white/15'} ${p.folded ? 'opacity-50' : ''}`}>
-        <div className="flex items-center justify-center gap-1.5">
-          <span title={p.connected ? 'Đang trực tuyến' : 'Mất kết nối'} className={`w-2.5 h-2.5 rounded-full shrink-0 ${p.connected ? 'bg-emerald-400' : 'bg-red-500'}`} />
-          {p.avatarUrl ? <img src={p.avatarUrl} alt="" className="w-6 h-6 rounded-full" /> : <span className="w-6 h-6 rounded-full bg-neutral-700 inline-flex items-center justify-center text-xs">{p.name[0]}</span>}
-          <span className={`${mine ? 'text-base' : 'text-sm'} font-semibold truncate max-w-24`}>{p.name}</span>
-          {p.isDealer && <span className="text-[10px] bg-white text-black rounded-full px-1.5 font-bold">D</span>}
-          {p.sittingOut && <span className="text-[10px] bg-neutral-700 rounded px-1">Vắng</span>}
-          {p.allIn && <span className="text-[10px] bg-red-700 rounded px-1">All-in</span>}
-        </div>
-        <div className="text-xs text-neutral-300">{fmt(p.stack)} chip</div>
-        {p.isTurn && state?.turnDeadline && (
-          <div className="h-1 bg-white/10 rounded mt-1 overflow-hidden">
-            <div className="h-full bg-emerald-400 transition-all" style={{ width: `${timerPct}%` }} />
-          </div>
-        )}
-        {(p.cards || p.cardsHidden) && (
-          <div className="flex gap-1 justify-center mt-1">
-            {p.cards
-              ? p.cards.map((c, j) => mine ? <PlayingCard key={j} card={c} /> : <PlayingCard key={j} card={c} small />)
-              : [<PlayingCard key="a" faceDown small />, <PlayingCard key="b" faceDown small />]}
-          </div>
-        )}
-        {p.handName && <div className="text-[11px] text-emerald-300 mt-0.5">{p.handName}</div>}
-        {p.lastAction && p.inHand && <div className="text-[11px] text-neutral-400">{ACTION_VI[p.lastAction] ?? p.lastAction}</div>}
+  const renderInfoBox = (p: PlayerState, mine: boolean) => (
+    <div key={p.userId} className={`${mine ? 'w-52' : 'w-36'} rounded-xl px-2 py-2 text-center bg-black/70 border ${p.isTurn ? 'border-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.5)]' : 'border-white/15'} ${p.folded ? 'opacity-50' : ''}`}>
+      <div className="flex items-center justify-center gap-1.5">
+        <span title={p.connected ? 'Đang trực tuyến' : 'Mất kết nối'} className={`w-2.5 h-2.5 rounded-full shrink-0 ${p.connected ? 'bg-emerald-400' : 'bg-red-500'}`} />
+        {p.avatarUrl ? <img src={p.avatarUrl} alt="" className="w-6 h-6 rounded-full" /> : <span className="w-6 h-6 rounded-full bg-neutral-700 inline-flex items-center justify-center text-xs">{p.name[0]}</span>}
+        <span className={`${mine ? 'text-base' : 'text-sm'} font-semibold truncate max-w-24`}>{p.name}</span>
+        {p.isDealer && <span className="text-[10px] bg-white text-black rounded-full px-1.5 font-bold">D</span>}
+        {p.sittingOut && <span className="text-[10px] bg-neutral-700 rounded px-1">Vắng</span>}
+        {p.allIn && <span className="text-[10px] bg-red-700 rounded px-1">All-in</span>}
       </div>
-      {p.bet > 0 && (
+      <div className="text-xs text-neutral-300">{fmt(p.stack)} chip</div>
+      {p.isTurn && state?.turnDeadline && (
+        <div className="h-1 bg-white/10 rounded mt-1 overflow-hidden">
+          <div className="h-full bg-emerald-400 transition-all" style={{ width: `${timerPct}%` }} />
+        </div>
+      )}
+      {p.handName && <div className="text-[11px] text-emerald-300 mt-0.5">{p.handName}</div>}
+      {p.lastAction && p.inHand && <div className="text-[11px] text-neutral-400">{ACTION_VI[p.lastAction] ?? p.lastAction}</div>}
+    </div>
+  );
+
+  const renderTableCards = (p: PlayerState, mine: boolean) => (
+    <div key={p.userId} className={`${mine ? 'w-52' : 'w-36'} flex flex-col items-center`}>
+      {mine && p.bet > 0 && (
+        <div className="mb-1 text-xs text-neutral-100 bg-black/50 rounded-full px-2 py-0.5">Cược: {fmt(p.bet)} chip</div>
+      )}
+      {(p.cards || p.cardsHidden) && (
+        <div className={`flex gap-1 justify-center rounded-lg p-1 border ${p.isTurn ? 'border-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.5)]' : 'border-transparent'} ${p.folded ? 'opacity-50' : ''}`}>
+          {p.cards
+            ? p.cards.map((c, j) => mine ? <PlayingCard key={j} card={c} /> : <PlayingCard key={j} card={c} small />)
+            : [<PlayingCard key="a" faceDown small />, <PlayingCard key="b" faceDown small />]}
+        </div>
+      )}
+      {!mine && p.bet > 0 && (
         <div className="mt-1 text-xs text-neutral-100 bg-black/50 rounded-full px-2 py-0.5">Cược: {fmt(p.bet)} chip</div>
       )}
     </div>
@@ -181,30 +187,43 @@ export default function TablePage() {
 
       {joined && state && (
         <>
-          {/* Rectangular felt table */}
-          <div className="mx-auto rounded-3xl bg-[#14532d] border-[10px] border-[#3f2d20] shadow-[inset_0_0_80px_rgba(0,0,0,0.6)] px-3 py-4 flex flex-col gap-3"
-            style={{ width: 'min(920px, 96vw)', minHeight: 520 }}>
-            {/* top edge: all other players + empty seats */}
-            <div className="flex flex-wrap justify-center items-start gap-2">
-              {topEntries.map((e) => e.player ? renderSeat(e.player, false) : (
-                <div key={e.seatIndex} className="w-28 text-center text-neutral-500 text-xs border border-dashed border-white/15 rounded-xl py-3 bg-black/30">Ghế trống</div>
+          {/* Rectangular felt table: info boxes outside the felt, cards inside at the edges */}
+          <div className="mx-auto" style={{ width: 'min(920px, 96vw)' }}>
+            {/* top edge, outside the felt: info boxes of other players + empty seats */}
+            <div className="flex flex-wrap justify-center items-end gap-2 mb-2">
+              {topEntries.map((e) => e.player ? renderInfoBox(e.player, false) : (
+                <div key={e.seatIndex} className="w-36 text-center text-neutral-500 text-xs border border-dashed border-white/15 rounded-xl py-3 bg-black/30">Ghế trống</div>
               ))}
             </div>
-            {/* center: board + pot */}
-            <div className="flex-1 flex flex-col items-center justify-center text-center py-2">
-              <div className="flex gap-1.5 justify-center mb-2">
-                {[0, 1, 2, 3, 4].map((i) => state.board[i]
-                  ? <PlayingCard key={i} card={state.board[i]} />
-                  : <div key={i} className="w-12 h-16 rounded-md border border-white/15 bg-black/20" />)}
+            <div className="rounded-3xl bg-[#14532d] border-[10px] border-[#3f2d20] shadow-[inset_0_0_80px_rgba(0,0,0,0.6)] px-3 py-3 flex flex-col gap-2" style={{ minHeight: 400 }}>
+              {/* inside the top edge: hole cards of other players */}
+              <div className="flex flex-wrap justify-center items-start gap-2 min-h-20">
+                {topEntries.map((e) => e.player ? renderTableCards(e.player, false) : (
+                  <div key={e.seatIndex} className="w-36" />
+                ))}
               </div>
-              <div className="text-sm text-emerald-200/80">{state.street ? STREET_VI[state.street] : 'Đang chờ bắt đầu'}</div>
-              <div className="font-bold text-lg">Pot: {fmt(state.pot)} chip</div>
-              {state.handNumber > 0 && <div className="text-xs text-neutral-300">Ván #{state.handNumber}</div>}
+              {/* center: board + pot */}
+              <div className="flex-1 flex flex-col items-center justify-center text-center py-2">
+                <div className="flex gap-1.5 justify-center mb-2">
+                  {[0, 1, 2, 3, 4].map((i) => state.board[i]
+                    ? <PlayingCard key={i} card={state.board[i]} />
+                    : <div key={i} className="w-12 h-16 rounded-md border border-white/15 bg-black/20" />)}
+                </div>
+                <div className="text-sm text-emerald-200/80">{state.street ? STREET_VI[state.street] : 'Đang chờ bắt đầu'}</div>
+                <div className="font-bold text-lg">Pot: {fmt(state.pot)} chip</div>
+                {state.handNumber > 0 && <div className="text-xs text-neutral-300">Ván #{state.handNumber}</div>}
+              </div>
+              {/* inside the bottom edge: current player's hole cards */}
+              {bottomPlayer && (
+                <div className="flex justify-center">
+                  {renderTableCards(bottomPlayer, true)}
+                </div>
+              )}
             </div>
-            {/* bottom edge: current player */}
+            {/* bottom edge, outside the felt: current player's info box */}
             {bottomPlayer && (
-              <div className="flex justify-center">
-                {renderSeat(bottomPlayer, true)}
+              <div className="flex justify-center mt-2">
+                {renderInfoBox(bottomPlayer, true)}
               </div>
             )}
           </div>
