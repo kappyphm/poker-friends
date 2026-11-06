@@ -76,7 +76,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       } catch (e) { done(e as Error); }
     },
   ));
-  passport.serializeUser((user: { id: string }, done) => done(null, user.id));
+  passport.serializeUser((user: Express.User, done) => done(null, (user as unknown as { id: string }).id));
   passport.deserializeUser(async (id: string, done) => {
     try { done(null, (await getUserById(id)) as Express.User); } catch (e) { done(e as Error); }
   });
@@ -199,7 +199,7 @@ app.post('/api/tables', requireAuth, async (req, res) => {
 });
 
 app.get('/api/tables/code/:code', requireAuth, async (req, res) => {
-  const row = await getTableRow(req.params.code);
+  const row = await getTableRow(String(req.params.code));
   if (!row) return res.status(404).json({ error: 'Không tìm thấy bàn' });
   const host = await getUserById(row.hostId);
   res.json({ table: { ...row, hostName: host?.name ?? '' } });
@@ -255,7 +255,7 @@ app.get('/api/me/sessions', requireAuth, async (req, res) => {
 app.get('/api/me/sessions/:id', requireAuth, async (req, res) => {
   const user = (req as AuthedReq).userRow;
   const rows = await db.select().from(schema.tableSessions)
-    .where(and(eq(schema.tableSessions.id, req.params.id), eq(schema.tableSessions.userId, user.id)));
+    .where(and(eq(schema.tableSessions.id, String(req.params.id)), eq(schema.tableSessions.userId, user.id)));
   const s = rows[0];
   if (!s) return res.status(404).json({ error: 'Không tìm thấy buổi chơi' });
   const t = await db.select().from(schema.tables).where(eq(schema.tables.id, s.tableId));
