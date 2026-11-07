@@ -1,6 +1,6 @@
 import { fmt } from '../../lib/format';
 
-/** Raise dialog: big amount input, synced slider, All-in / Raise actions. */
+/** Raise dialog in the redesigned dark language: big amount input, synced slider, All-in / Raise pill actions. Same behavior as before. */
 export function RaiseModal({ raiseTo, onRaiseToChange, minRaise, maxRaise, canRaise, onClose, onAct }: {
   raiseTo: number;
   onRaiseToChange: (n: number) => void;
@@ -12,11 +12,11 @@ export function RaiseModal({ raiseTo, onRaiseToChange, minRaise, maxRaise, canRa
 }) {
   const raiseValid = canRaise && raiseTo >= minRaise && raiseTo <= maxRaise;
   return (
-  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center px-4" onClick={onClose}>
-    <div className="bg-surface border border-line rounded-3xl shadow-2xl w-[min(430px,94vw)] p-6" onClick={(e) => e.stopPropagation()}>
+  <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:px-4" onClick={onClose}>
+    <div className="bg-surface border border-line rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:w-[min(430px,94vw)] p-6" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold">Raise tới</h2>
-        <button type="button" aria-label="Đóng" className="w-8 h-8 rounded-full bg-inset border border-line flex items-center justify-center hover:brightness-95" onClick={onClose}>×</button>
+        <button type="button" aria-label="Đóng" className="w-11 h-11 rounded-full bg-inset border border-line flex items-center justify-center text-xl hover:bg-[#2b2b2f]" onClick={onClose}>×</button>
       </div>
       <input
         type="number"
@@ -42,12 +42,12 @@ export function RaiseModal({ raiseTo, onRaiseToChange, minRaise, maxRaise, canRa
       )}
       <div className="flex gap-3 mt-6">
         <button
-          className="flex-1 bg-lav text-lavink hover:brightness-95 rounded-2xl px-4 py-3.5 text-lg font-bold shadow-sm"
+          className="flex-1 h-12 rounded-full bg-[#2b2b2f] text-white hover:bg-[#3a3a3f] px-4 text-lg font-bold transition-colors"
           onClick={() => onAct('allin')}
         >All-in</button>
         <button
           disabled={!raiseValid}
-          className="flex-1 bg-raise text-raiseink hover:brightness-95 disabled:opacity-40 disabled:hover:brightness-100 rounded-2xl px-4 py-3.5 text-lg font-bold shadow-sm"
+          className="flex-1 h-12 rounded-full bg-white text-black hover:bg-neutral-200 disabled:opacity-40 disabled:hover:bg-white px-4 text-lg font-bold transition-colors"
           onClick={() => onAct('raise', raiseTo)}
         >Raise</button>
       </div>

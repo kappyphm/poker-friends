@@ -3,18 +3,34 @@ import { PlayingCard } from '../cards/PlayingCard';
 import { STREET_VI } from './labels.js';
 import type { TableState } from './types.js';
 
-/** Center of the felt: community cards, street name, pot and hand number. */
+/**
+ * Center zone of the redesigned table: the board as large overlapping
+ * cards (undealt slots shown as striped face-down cards, like the
+ * reference), street/hand info at the left and the pot at the bottom
+ * right, just below the board.
+ */
 export function BoardArea({ state }: { state: TableState }) {
   return (
-  <div className="flex-1 flex flex-col items-center justify-center text-center py-2 text-feltink">
-    <div className="flex gap-1.5 justify-center mb-2">
-      {[0, 1, 2, 3, 4].map((i) => state.board[i]
-        ? <PlayingCard key={i} card={state.board[i]} />
-        : <div key={i} className="w-14 h-[4.75rem] rounded-md border-2 border-dashed" style={{ borderColor: 'var(--felt-muted)', background: 'rgba(0,0,0,0.08)' }} />)}
+    <div className="flex flex-col items-center justify-center px-1">
+      <div className="flex justify-center">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className={i > 0 ? '-ml-6 sm:-ml-10' : ''}>
+            {state.board[i]
+              ? <PlayingCard card={state.board[i]} board />
+              : <PlayingCard board faceDown />}
+          </div>
+        ))}
+      </div>
+      <div className="w-full max-w-md flex items-end justify-between mt-2.5 px-0.5">
+        <div className="text-xs text-muted">
+          {state.street ? STREET_VI[state.street] : ''}
+          {state.handNumber > 0 && <span> · Ván #{state.handNumber}</span>}
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-xs text-muted">Pot</span>
+          <span className="text-xl font-bold leading-none">{fmt(state.pot)}</span>
+        </div>
+      </div>
     </div>
-    <div className="text-sm text-feltmuted">{state.street ? STREET_VI[state.street] : 'Đang chờ bắt đầu'}</div>
-    <div className="font-bold text-lg">Pot: {fmt(state.pot)} chip</div>
-    {state.handNumber > 0 && <div className="text-xs text-feltmuted">Ván #{state.handNumber}</div>}
-  </div>
   );
 }

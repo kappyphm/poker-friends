@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
-/* Pastel theme tokens. Runtime values live in CSS variables switched by
-   [data-theme] on <html>; utilities below are generated from these tokens. */
+/* Minimal dark theme tokens (reference design language): pure black
+   background, dark-gray elements, white text/cards. Single theme — the
+   former pastel light/dark system was dropped with the redesign. */
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -35,73 +36,37 @@
   --color-lose: var(--lose);
 }
 
-/* Dark theme (default) */
-:root,
-:root[data-theme="dark"] {
-  --bg: #262030;
-  --surface: #342c42;
-  --inset: #3e3550;
-  --line: #4e4462;
-  --ink: #f2edf7;
-  --muted: #b9aecb;
-  --felt: #40614e;
-  --rail: #6e5138;
-  --felt-ink: #eef6ee;
-  --felt-muted: rgba(238, 246, 238, 0.72);
-  --accent: #7fc79b;
-  --accent-ink: #0f3520;
-  --lav: #b7a8e0;
-  --lav-ink: #2c2150;
-  --fold: #e3a0a4;
-  --fold-ink: #4a171c;
-  --call: #93d3ac;
-  --call-ink: #103d24;
-  --raise: #f0c184;
-  --raise-ink: #4e2f08;
-  --cardback: #57719f;
-  --cardback-line: #42597f;
-  --danger-bg: #4a2c33;
-  --danger-line: #7a4750;
-  --danger-ink: #f3c2c6;
-  --info-bg: #2e3a55;
-  --info-line: #48597e;
-  --info-ink: #c3d2f0;
-  --win: #8fd6a8;
-  --lose: #f0a49c;
-}
-
-/* Light theme */
-:root[data-theme="light"] {
-  --bg: #faf6ef;
-  --surface: #ffffff;
-  --inset: #f4eee3;
-  --line: #e4daca;
-  --ink: #3c4348;
-  --muted: #6f7a72;
-  --felt: #afdcbe;
-  --rail: #d8bfa3;
-  --felt-ink: #23402e;
-  --felt-muted: rgba(35, 64, 46, 0.72);
-  --accent: #8fd0a8;
-  --accent-ink: #17452b;
-  --lav: #d9cff2;
-  --lav-ink: #443a6b;
-  --fold: #f7c8c8;
-  --fold-ink: #7c2d33;
-  --call: #bde8cc;
-  --call-ink: #1d5c38;
-  --raise: #fbdcae;
-  --raise-ink: #7a4a10;
-  --cardback: #aec6e8;
-  --cardback-line: #8fadd9;
-  --danger-bg: #fbe7e4;
-  --danger-line: #f0bdb4;
-  --danger-ink: #93392f;
-  --info-bg: #e3ecfa;
-  --info-line: #b7cdf0;
-  --info-ink: #2f4e7e;
-  --win: #2e7d4f;
-  --lose: #c0453e;
+:root {
+  --bg: #000000;
+  --surface: #17171a;
+  --inset: #232327;
+  --line: #2e2e33;
+  --ink: #f5f5f7;
+  --muted: #9c9ca3;
+  --felt: #000000;
+  --rail: #000000;
+  --felt-ink: #f5f5f7;
+  --felt-muted: #9c9ca3;
+  --accent: #3a3a3f;
+  --accent-ink: #ffffff;
+  --lav: #2c2c2f;
+  --lav-ink: #f5f5f7;
+  --fold: #2b2b2f;
+  --fold-ink: #ffffff;
+  --call: #2b2b2f;
+  --call-ink: #ffffff;
+  --raise: #2b2b2f;
+  --raise-ink: #ffffff;
+  --cardback: #fafafa;
+  --cardback-line: #3f3f46;
+  --danger-bg: #2a1416;
+  --danger-line: #5b2329;
+  --danger-ink: #fda4af;
+  --info-bg: #131a26;
+  --info-line: #26334d;
+  --info-ink: #bcd2fb;
+  --win: #4ade80;
+  --lose: #f87171;
 }
 
 body {
@@ -111,5 +76,5 @@ body {
 }
 
 input[type="range"] {
-  accent-color: var(--raise);
+  accent-color: var(--ink);
 }
