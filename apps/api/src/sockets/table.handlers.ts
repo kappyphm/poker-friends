@@ -1,5 +1,8 @@
 import { and, eq, isNull } from 'drizzle-orm';
+import { ErrorCode } from '@poker/shared';
 import { db, schema } from '../db/client.js';
+import { errorCodeOf } from '../errors/AppError.js';
+import { logger } from '../lib/logger.js';
 import type { SeatPlayer } from '../services/game/types.js';
 import { broadcastState, getTableRow, loadOrCreateTableState } from '../services/tables.service.js';
 import type { SocketHandlerContext } from './context.js';
@@ -10,7 +13,7 @@ export function registerTableHandlers(ctx: SocketHandlerContext) {
 socket.on('table:join', async (payload: { code: string; mode?: string; buyIn?: number }) => {
   try {
     const row = await getTableRow(String(payload?.code ?? ''));
-    if (!row) return fail('Không tìm thấy bàn');
+    if (!row) return fail(ErrorCode.INVALID_INVITE_CODE);
     const t = await loadOrCreateTableState(row);
     session.code = t.cfg.code;
     await socket.join(`table:${t.cfg.code}`);
@@ -31,11 +34,11 @@ socket.on('table:join', async (payload: { code: string; mode?: string; buyIn?: n
     }
     // new seat requires buy-in
     const buyIn = Number(payload.buyIn ?? 0);
-    if (!buyIn || buyIn < row.minBuyIn) return fail(`Buy-in tối thiểu là ${row.minBuyIn} chip`);
+    if (!buyIn || buyIn < row.minBuyIn) return fail(ErrorCode.BUY_IN_TOO_LOW);
     const usedSeats = new Set([...t.seats.values()].map((p) => p.seatIndex));
     let seatIndex = -1;
     for (let i = 0; i < row.seats; i++) if (!usedSeats.has(i)) { seatIndex = i; break; }
-    if (seatIndex === -1) return fail('Bàn đã đầy');
+    if (seatIndex === -1) return fail(ErrorCode.TABLE_FULL);
     // Reserve the seat SYNCHRONOUSLY before any await, otherwise concurrent
     // joins compute the same free seat and overwrite each other.
     const seat: SeatPlayer = {
@@ -68,7 +71,10 @@ socket.on('table:join', async (payload: { code: string; mode?: string; buyIn?: n
     }
     seat.sessionId = sessionRow.id;
     broadcastState(t);
-  } catch (e) { console.error(e); fail('Có lỗi khi vào bàn'); }
+  } catch (e) {
+    if (errorCodeOf(e) === ErrorCode.INTERNAL_ERROR) logger.error({ err: e }, 'Failed to join table');
+    fail(errorCodeOf(e));
+  }
 });
 
 socket.on('table:spectate', async (payload: { code: string }) => {

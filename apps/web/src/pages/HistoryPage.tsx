@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
+import { presentError } from '../lib/errors';
 import { fmt } from '../lib/format';
 
 interface SessionRow {
@@ -14,7 +15,7 @@ export default function HistoryPage() {
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [error, setError] = useState('');
   useEffect(() => {
-    api<{ sessions: SessionRow[] }>('/api/me/sessions').then((d) => setSessions(d.sessions)).catch((e) => setError((e as Error).message));
+    api<{ sessions: SessionRow[] }>('/api/me/sessions').then((d) => setSessions(d.sessions)).catch((e) => presentError(e, setError));
   }, []);
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">

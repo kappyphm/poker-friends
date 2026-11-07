@@ -2,8 +2,10 @@ import { Server as SocketServer } from 'socket.io';
 import type { Server as HttpServer } from 'node:http';
 import type { RequestHandler } from 'express';
 import { eq } from 'drizzle-orm';
+import { ErrorCode, type SocketErrorBody } from '@poker/shared';
 import { CLIENT_URL } from '../config/env.js';
 import { db, schema } from '../db/client.js';
+import { logger } from '../lib/logger.js';
 import { getUserById } from '../services/users.service.js';
 import { broadcastState, getLiveTable, setStateBroadcaster } from '../services/tables.service.js';
 import { createStateBroadcaster } from './state.js';
@@ -18,22 +20,27 @@ export function attachSockets(httpServer: HttpServer, sessionMiddleware: Request
   setStateBroadcaster(createStateBroadcaster(io));
 
   io.on('connection', async (socket) => {
-    const sess = (socket.request as unknown as { session?: { userId?: string } }).session;
-    const userId = sess?.userId;
-    if (!userId) { socket.emit('error', { message: 'Chưa đăng nhập' }); socket.disconnect(); return; }
-    const user = await getUserById(userId);
-    if (!user) { socket.disconnect(); return; }
-    (socket as unknown as { userId: string }).userId = userId;
-    const session = { code: null as string | null };
+    const emitError = (code: ErrorCode) => {
+      const body: SocketErrorBody = { error: { code } };
+      socket.emit('error', body);
+    };
+    try {
+      const sess = (socket.request as unknown as { session?: { userId?: string } }).session;
+      const userId = sess?.userId;
+      if (!userId) { emitError(ErrorCode.AUTH_REQUIRED); socket.disconnect(); return; }
+      const user = await getUserById(userId);
+      if (!user) { emitError(ErrorCode.ACCOUNT_NOT_FOUND); socket.disconnect(); return; }
+      (socket as unknown as { userId: string }).userId = userId;
+      const session = { code: null as string | null };
 
-    const fail = (message: string) => socket.emit('error', { message });
+      const fail = (code: ErrorCode) => emitError(code);
 
-    const ctx: SocketHandlerContext = { socket, user, userId, session, fail };
-    registerTableHandlers(ctx);
-    registerPlayerHandlers(ctx);
-    registerHostHandlers(ctx);
+      const ctx: SocketHandlerContext = { socket, user, userId, session, fail };
+      registerTableHandlers(ctx);
+      registerPlayerHandlers(ctx);
+      registerHostHandlers(ctx);
 
-    socket.on('disconnect', async () => {
+      socket.on('disconnect', async () => {
       if (!session.code) return;
       const t = getLiveTable(session.code);
       if (!t) return;
@@ -53,10 +60,15 @@ export function attachSockets(httpServer: HttpServer, sessionMiddleware: Request
             t.seats.delete(p.seatIndex);
             broadcastState(t);
           }
-        }, 5 * 60_000);
-        broadcastState(t);
-      }
-    });
+          }, 5 * 60_000);
+          broadcastState(t);
+        }
+      });
+    } catch (err) {
+      logger.error({ err }, 'Socket connection setup failed');
+      emitError(ErrorCode.INTERNAL_ERROR);
+      socket.disconnect();
+    }
   });
 
   return io;

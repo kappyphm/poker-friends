@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../lib/api';
+import { presentError } from '../lib/errors';
 import { fmt } from '../lib/format';
+import { handRankLabel } from '../components/table/labels';
 import { PlayingCard } from '../components/cards/PlayingCard';
 
 interface HandRow {
   id: string; handNumber: number; board: string[]; totalPot: number;
-  winners: { userId: string; name: string; amount: number; handName: string | null }[];
+  // `handRank` is the engine key; `handName` only exists on records persisted before keys were introduced.
+  winners: { userId: string; name: string; amount: number; handRank?: string | null; handName?: string | null }[];
   actionLog: { street: string; name: string; action: string; amount: number }[];
   myCards: string[];
   showdownInfo: Record<string, string> | null;
@@ -28,7 +31,7 @@ export default function SessionDetailPage() {
   const [error, setError] = useState('');
   useEffect(() => {
     api<{ session: SessionDetail; hands: HandRow[] }>(`/api/me/sessions/${id}`)
-      .then(setData).catch((e) => setError((e as Error).message));
+      .then(setData).catch((e) => presentError(e, setError));
   }, [id]);
   if (error) return <div className="max-w-3xl mx-auto py-16 text-center text-lose">{error}</div>;
   if (!data) return <div className="max-w-3xl mx-auto py-16 text-center text-muted">Đang tải…</div>;
@@ -57,14 +60,17 @@ export default function SessionDetailPage() {
                 )}
                 <span className="text-sm">Pot: {fmt(h.totalPot)}</span>
                 <span className="text-sm text-win">
-                  {h.winners.map((w) => `${w.name} +${fmt(w.amount)}${w.handName ? ` (${w.handName})` : ''}`).join(' · ')}
+                  {h.winners.map((w) => {
+                    const label = handRankLabel(w.handRank ?? w.handName);
+                    return `${w.name} +${fmt(w.amount)}${label ? ` (${label})` : ''}`;
+                  }).join(' · ')}
                 </span>
               </div>
             </button>
             {open === h.id && (
               <div className="mt-3 border-t border-line pt-3 text-sm space-y-1">
-                {h.showdownInfo && Object.entries(h.showdownInfo).map(([uid, name]) => (
-                  <div key={uid}>Bài lật ở showdown: {name}</div>
+                {h.showdownInfo && Object.entries(h.showdownInfo).map(([uid, rank]) => (
+                  <div key={uid}>Bài lật ở showdown: {handRankLabel(rank)}</div>
                 ))}
                 <div className="text-muted">Diễn biến:</div>
                 {h.actionLog.map((a, i) => (

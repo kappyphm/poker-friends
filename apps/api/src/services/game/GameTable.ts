@@ -1,8 +1,10 @@
 import {
   createDeck, shuffleDeck, mulberry32, cardToString,
   evaluateHand, buildSidePots, distributePots,
-  type Card,
+  ErrorCode, type Card, type HandRankKey,
 } from '@poker/shared';
+import { AppError } from '../../errors/AppError.js';
+import { logger } from '../../lib/logger.js';
 
 import type {
   ActionLogEntry, ActionType, HandRecord, SeatPlayer, Street, TableConfig,
@@ -55,12 +57,12 @@ export class GameTable {
       .sort((a, b) => a.seatIndex - b.seatIndex);
   }
 
-  canStart(): { ok: boolean; reason?: string } {
-    if (this.handInProgress) return { ok: false, reason: 'Ván đang diễn ra' };
+  canStart(): { ok: boolean; code?: ErrorCode } {
+    if (this.handInProgress) return { ok: false, code: ErrorCode.GAME_ALREADY_STARTED };
     const ready = [...this.seats.values()].filter(
       (p) => p.stack > 0 && !p.sittingOut,
     );
-    if (ready.length < 3) return { ok: false, reason: 'Cần tối thiểu 3 người có chip và không vắng mặt' };
+    if (ready.length < 3) return { ok: false, code: ErrorCode.NOT_ENOUGH_PLAYERS };
     return { ok: true };
   }
 
@@ -68,7 +70,7 @@ export class GameTable {
     const ready = [...this.seats.values()]
       .filter((p) => p.stack > 0 && !p.sittingOut)
       .sort((a, b) => a.seatIndex - b.seatIndex);
-    if (ready.length < 3) throw new Error('Chưa đủ 3 người chơi');
+    if (ready.length < 3) throw new AppError(ErrorCode.NOT_ENOUGH_PLAYERS);
 
     this.handNumber++;
     this.actionLog = [];
@@ -138,8 +140,8 @@ export class GameTable {
 
   applyAction(userId: string, action: ActionType, amount?: number) {
     const p = this.turnPlayer();
-    if (!p || p.userId !== userId) throw new Error('Chưa tới lượt của bạn');
-    if (!this.handInProgress || !p.inHand || p.folded || p.allIn) throw new Error('Hành động không hợp lệ');
+    if (!p || p.userId !== userId) throw new AppError(ErrorCode.NOT_YOUR_TURN);
+    if (!this.handInProgress || !p.inHand || p.folded || p.allIn) throw new AppError(ErrorCode.INVALID_ACTION);
 
     const toCall = this.toCall(p);
     let logAmount = 0;
@@ -149,10 +151,10 @@ export class GameTable {
       p.folded = true;
       p.lastAction = 'fold';
     } else if (action === 'check') {
-      if (toCall !== 0) throw new Error('Không thể check khi cần theo bài');
+      if (toCall !== 0) throw new AppError(ErrorCode.CHECK_NOT_ALLOWED);
       p.lastAction = 'check';
     } else if (action === 'call') {
-      if (toCall === 0) throw new Error('Không có gì để call, hãy check');
+      if (toCall === 0) throw new AppError(ErrorCode.CALL_NOT_AVAILABLE);
       const pay = Math.min(p.stack, toCall);
       this.pay(p, pay);
       logAmount = pay;
@@ -172,9 +174,9 @@ export class GameTable {
       const target = amount ?? 0;
       const maxTo = p.betStreet + p.stack;
       const minTo = this.minRaiseTo();
-      if (target > maxTo) throw new Error('Số chip raise vượt quá stack');
-      if (target < minTo && target !== maxTo) throw new Error(`Raise tối thiểu tới ${minTo}`);
-      if (target <= this.currentBet) throw new Error('Số chip raise phải lớn hơn mức cược hiện tại');
+      if (target > maxTo) throw new AppError(ErrorCode.RAISE_EXCEEDS_STACK);
+      if (target < minTo && target !== maxTo) throw new AppError(ErrorCode.RAISE_BELOW_MINIMUM);
+      if (target <= this.currentBet) throw new AppError(ErrorCode.RAISE_NOT_ABOVE_CURRENT_BET);
       const inc = target - this.currentBet;
       const pay = target - p.betStreet;
       this.pay(p, pay);
@@ -302,7 +304,7 @@ export class GameTable {
 
     const anyAllIn = contenders.some((p) => p.allIn);
     const scores = new Map<string, number>();
-    const handNames = new Map<string, string>();
+    const handKeys = new Map<string, HandRankKey>();
     let payouts = new Map<string, number>();
 
     if (contenders.length === 1) {
@@ -313,7 +315,7 @@ export class GameTable {
       for (const p of contenders) {
         const v = evaluateHand([...p.holeCards, ...this.board]);
         scores.set(p.userId, v.score);
-        handNames.set(p.userId, v.categoryNameVi);
+        handKeys.set(p.userId, v.categoryKey);
       }
       const orderFromDealer = this.rotateFrom(participants, this.dealerSeat)
         .slice(1)
@@ -347,15 +349,15 @@ export class GameTable {
         const p = this.playerByUser(userId)!;
         return {
           userId, name: p.name, amount,
-          handName: contenders.length > 1 ? (handNames.get(userId) ?? null) : null,
+          handRank: contenders.length > 1 ? (handKeys.get(userId) ?? null) : null,
         };
       });
 
     const holeCards: Record<string, string[]> = {};
     for (const p of participants) holeCards[p.userId] = p.holeCards.map(cardToString);
-    const showdownInfo: Record<string, string> = {};
+    const showdownInfo: Record<string, HandRankKey> = {};
     for (const p of contenders) {
-      if (p.showCards && handNames.has(p.userId)) showdownInfo[p.userId] = handNames.get(p.userId)!;
+      if (p.showCards && handKeys.has(p.userId)) showdownInfo[p.userId] = handKeys.get(p.userId)!;
     }
 
     const rec: HandRecord = {
@@ -372,7 +374,7 @@ export class GameTable {
     // reset per-hand bets display
     for (const p of participants) p.betStreet = 0;
     if (this.onHandComplete) {
-      Promise.resolve(this.onHandComplete(rec)).catch((e) => console.error('persist hand failed', e));
+      Promise.resolve(this.onHandComplete(rec)).catch((e) => logger.error({ err: e }, 'Failed to persist hand'));
     }
     this.emit();
   }

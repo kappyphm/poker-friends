@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { fmt } from '../../lib/format';
+import { errorMessageForCode } from '../../lib/errors';
+import { handRankLabel } from './labels.js';
 import type { TableState } from './types.js';
 
 /** Between-hands area: last hand result, host start button, rebuy row. */
@@ -19,7 +21,7 @@ export function WaitingControls({ state, isHost, hasMe, onStart, onRebuy }: {
         <div className="font-semibold mb-1">Kết quả ván #{state.lastResult.handNumber} — Pot {fmt(state.lastResult.totalPot)} chip</div>
         {state.lastResult.winners.map((w) => (
           <div key={w.userId} className="text-sm text-win">
-            {w.name} thắng {fmt(w.amount)} chip{w.handName ? ` với ${w.handName}` : ''}
+            {w.name} thắng {fmt(w.amount)} chip{w.handRank ? ` với ${handRankLabel(w.handRank)}` : ''}
           </div>
         ))}
       </div>
@@ -31,7 +33,7 @@ export function WaitingControls({ state, isHost, hasMe, onStart, onRebuy }: {
           className="bg-accent text-accentink hover:brightness-95 disabled:bg-inset disabled:text-muted rounded-lg px-8 py-3 font-bold text-lg"
           onClick={onStart}
         >Bắt đầu ván</button>
-        {!state.canStart.ok && <div className="text-sm text-muted">{state.canStart.reason}</div>}
+        {!state.canStart.ok && <div className="text-sm text-muted">{errorMessageForCode(state.canStart.code)}</div>}
       </>
     ) : (
       <div className="text-muted">Đang chờ chủ bàn bắt đầu ván…</div>

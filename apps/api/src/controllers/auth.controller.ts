@@ -1,7 +1,9 @@
 import type { Express, Request, Response } from 'express';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { ErrorCode } from '@poker/shared';
 import { CLIENT_URL, DEV_AUTH, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, PORT } from '../config/env.js';
+import { AppError } from '../errors/AppError.js';
 import { findOrCreateUser, getUserById } from '../services/users.service.js';
 
 export function mountGoogleAuth(app: Express) {
@@ -43,9 +45,13 @@ export function getAuthConfig(_req: Request, res: Response) {
 }
 
 export async function devLogin(req: Request, res: Response) {
-  if (!DEV_AUTH) return res.status(403).json({ error: 'Dev login đang tắt' });
+  if (!DEV_AUTH) throw new AppError(ErrorCode.DEV_LOGIN_DISABLED);
   const name = String(req.body?.name ?? '').trim();
-  if (!name) return res.status(400).json({ error: 'Thiếu tên' });
+  if (!name) {
+    throw new AppError(ErrorCode.VALIDATION_ERROR, [
+      { field: 'name', code: ErrorCode.NAME_REQUIRED },
+    ]);
+  }
   const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
   const user = await findOrCreateUser({ email: `dev-${slug}@poker.local`, name });
   req.session.userId = user.id;
@@ -53,9 +59,9 @@ export async function devLogin(req: Request, res: Response) {
 }
 
 export async function getMe(req: Request, res: Response) {
-  if (!req.session.userId) return res.status(401).json({ error: 'Chưa đăng nhập' });
+  if (!req.session.userId) throw new AppError(ErrorCode.AUTH_REQUIRED);
   const user = await getUserById(req.session.userId);
-  if (!user) return res.status(401).json({ error: 'Chưa đăng nhập' });
+  if (!user) throw new AppError(ErrorCode.ACCOUNT_NOT_FOUND);
   res.json({ user });
 }
 

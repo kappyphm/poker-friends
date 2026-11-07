@@ -1,13 +1,15 @@
 import type { Request, Response } from 'express';
 import { eq, desc } from 'drizzle-orm';
+import { ErrorCode } from '@poker/shared';
 import { db, schema } from '../db/client.js';
+import { AppError } from '../errors/AppError.js';
 import { getUserById } from '../services/users.service.js';
 import { genCode, getTableRow, loadOrCreateTableState } from '../services/tables.service.js';
 import type { AuthedRequest } from '../middleware/requireAuth.js';
 
 export async function createTable(req: Request, res: Response) {
   const user = (req as AuthedRequest).userRow;
-  const name = String(req.body?.name ?? 'Bàn của bạn bè').trim() || 'Bàn của bạn bè';
+  const name = String(req.body?.name ?? 'Friends table').trim() || 'Friends table';
   const seats = Math.min(10, Math.max(3, Number(req.body?.seats ?? 9)));
   const minBuyIn = Math.max(1, Number(req.body?.minBuyIn ?? 200));
   const smallBlind = Math.max(1, Number(req.body?.smallBlind ?? 5));
@@ -23,7 +25,7 @@ export async function createTable(req: Request, res: Response) {
 
 export async function getTableByCode(req: Request, res: Response) {
   const row = await getTableRow(String(req.params.code));
-  if (!row) return res.status(404).json({ error: 'Không tìm thấy bàn' });
+  if (!row) throw new AppError(ErrorCode.TABLE_NOT_FOUND);
   const host = await getUserById(row.hostId);
   res.json({ table: { ...row, hostName: host?.name ?? '' } });
 }
