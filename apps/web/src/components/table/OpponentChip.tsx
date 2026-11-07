@@ -41,7 +41,7 @@ export function OpponentChip({ player: p, compact, timerPct }: {
       {p.lastAction && p.inHand && !p.handRank && (
         <div className="text-[10px] text-muted mt-0.5">{ACTION_VI[p.lastAction] ?? p.lastAction}</div>
       )}
-      {p.cards && (
+      {p.cards && p.cards.length > 0 && (
         <div className="flex gap-1 mt-1.5">
           {p.cards.map((c, j) => <PlayingCard key={j} card={c} mini />)}
         </div>

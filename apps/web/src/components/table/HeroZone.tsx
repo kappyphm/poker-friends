@@ -10,9 +10,10 @@ import type { PlayerState } from './types.js';
  * stack) — mirroring the reference layout. Spectators get an info card
  * instead of cards; they never receive hole cards.
  */
-export function HeroZone({ player: p, spectator, timerPct }: {
+export function HeroZone({ player: p, spectator, handInProgress, timerPct }: {
   player: PlayerState | null;
   spectator: boolean;
+  handInProgress: boolean;
   timerPct: number;
 }) {
   if (spectator || !p) {
@@ -26,6 +27,8 @@ export function HeroZone({ player: p, spectator, timerPct }: {
     );
   }
   const rank = handRankLabel(p.handRank);
+  // The server sends an empty array (not null) before cards are dealt.
+  const hasCards = Boolean(p.cards && p.cards.length > 0);
   return (
     <div className="flex items-end justify-between gap-3">
       <div className="flex flex-col items-start">
@@ -35,10 +38,10 @@ export function HeroZone({ player: p, spectator, timerPct }: {
           </div>
         )}
         <div className={`flex ${p.folded ? 'opacity-45' : ''}`}>
-          {p.cards ? (
+          {hasCards ? (
             <>
-              <PlayingCard card={p.cards[0]} hero />
-              {p.cards[1] && <div className="-ml-7 sm:-ml-9"><PlayingCard card={p.cards[1]} hero /></div>}
+              <PlayingCard card={p.cards![0]} hero />
+              {p.cards![1] && <div className="-ml-7 sm:-ml-9"><PlayingCard card={p.cards![1]} hero /></div>}
             </>
           ) : (
             <>
@@ -47,7 +50,7 @@ export function HeroZone({ player: p, spectator, timerPct }: {
             </>
           )}
         </div>
-        {!p.inHand && <div className="text-[11px] text-muted mt-1.5">Chờ ván sau</div>}
+        {handInProgress && !p.inHand && <div className="text-[11px] text-muted mt-1.5">Chờ ván sau</div>}
       </div>
 
       <div className="bg-surface border border-line rounded-3xl px-4 py-3 w-36 sm:w-44 flex flex-col items-center text-center shrink-0">

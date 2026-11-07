@@ -25,7 +25,7 @@ export default function LobbyPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 grid md:grid-cols-2 gap-8">
-      <section className="bg-surface border border-line rounded-2xl p-6">
+      <section className="bg-surface border border-line rounded-2xl p-6 min-w-0">
         <h2 className="text-xl font-bold mb-4">Tạo bàn mới</h2>
         <label className="block text-sm text-muted mb-1">Tên bàn</label>
         <input className="w-full bg-inset border border-line rounded-lg px-3 py-2 mb-3" value={form.name}
@@ -65,20 +65,20 @@ export default function LobbyPage() {
         >Tạo bàn</button>
       </section>
 
-      <div className="space-y-8">
-        <section className="bg-surface border border-line rounded-2xl p-6">
+      <div className="space-y-8 min-w-0">
+        <section className="bg-surface border border-line rounded-2xl p-6 min-w-0">
           <h2 className="text-xl font-bold mb-4">Vào bàn bằng mã mời</h2>
-          <div className="flex gap-2">
-            <input className="flex-1 bg-inset border border-line rounded-lg px-3 py-2 uppercase" placeholder="Mã 6 ký tự"
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input className="flex-1 min-w-0 bg-inset border border-line rounded-lg px-3 py-2 uppercase" placeholder="Mã 6 ký tự"
               value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} />
-            <button className="bg-lav text-lavink hover:brightness-95 rounded-lg px-4 font-semibold"
+            <button className="bg-lav text-lavink hover:brightness-95 rounded-lg px-4 py-2 font-semibold shrink-0"
               onClick={() => joinCode && navigate(`/ban/${joinCode}`)}>Vào bàn</button>
-            <button className="bg-inset border border-line hover:brightness-95 rounded-lg px-4 font-semibold"
+            <button className="bg-inset border border-line hover:brightness-95 rounded-lg px-4 py-2 font-semibold shrink-0"
               onClick={() => joinCode && navigate(`/ban/${joinCode}?mode=spectator`)}>Xem</button>
           </div>
         </section>
 
-        <section className="bg-surface border border-line rounded-2xl p-6">
+        <section className="bg-surface border border-line rounded-2xl p-6 min-w-0">
           <h2 className="text-xl font-bold mb-4">Bàn của tôi</h2>
           {[...mine.hosted, ...mine.joined].length === 0 && <div className="text-muted text-sm">Chưa có bàn nào.</div>}
           <ul className="space-y-2">

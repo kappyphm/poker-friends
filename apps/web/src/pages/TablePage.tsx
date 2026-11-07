@@ -159,7 +159,7 @@ export default function TablePage() {
 
           {/* hero zone: my cards + my info card (or the spectator card) */}
           {(me || state.isSpectator) && (
-            <HeroZone player={me ?? null} spectator={state.isSpectator} timerPct={timerPct} />
+            <HeroZone player={me ?? null} spectator={state.isSpectator} handInProgress={state.handInProgress} timerPct={timerPct} />
           )}
 
           {/* raise modal */}
