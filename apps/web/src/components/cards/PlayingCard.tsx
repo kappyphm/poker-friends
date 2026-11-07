@@ -1,4 +1,4 @@
-import { cardParts } from '../lib';
+import { cardParts } from '../../lib/cards';
 
 const SIZES = {
   small: { box: 'w-11 h-[3.75rem] text-base', suit: 'text-lg', inner: 'w-7 h-10' },

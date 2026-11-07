@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, fmt } from '../lib';
+import { api } from '../lib/api';
+import { fmt } from '../lib/format';
 
 interface SessionRow {
   id: string; tableName: string; tableCode: string;

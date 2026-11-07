@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api, fmt } from '../lib';
+import { api } from '../lib/api';
+import { fmt } from '../lib/format';
 import { useAuth } from '../App';
 
 interface Stats {
