@@ -4,8 +4,10 @@ import { ERROR_CATALOG } from '../errors/catalog.js';
 /**
  * The API's OpenAPI document, declared centrally in one file.
  *
- * Errors are part of the contract: every error response has the shape
- * `{ "error": { "code": "T2001" } }` — a code only, never a message.
+ * Errors are part of the contract: every REST error response is an
+ * RFC 7807 style problem body keyed by a stable code — the code, the
+ * catalog's fixed English title, the HTTP status, the request id, a
+ * timestamp and the request path (plus code-only validation details).
  * The full code table below is generated from the backend error catalog,
  * so the docs can never drift from the codes the API actually sends.
  */
@@ -18,7 +20,7 @@ const errorCodeTable = [
   ),
 ].join('\n');
 
-const errorResponses = (codes: ErrorCode[]) => {
+const errorResponses = (instance: string, codes: ErrorCode[]) => {
   const byStatus = new Map<number, ErrorCode[]>();
   for (const code of codes) {
     const status = ERROR_CATALOG[code].httpStatus;
@@ -32,7 +34,21 @@ const errorResponses = (codes: ErrorCode[]) => {
         'application/json': {
           schema: { $ref: '#/components/schemas/ErrorResponse' },
           examples: Object.fromEntries(
-            group.map((c) => [c, { value: { error: { code: c } } }]),
+            group.map((c) => [
+              c,
+              {
+                value: {
+                  error: {
+                    code: c,
+                    title: ERROR_CATALOG[c].message,
+                    status: ERROR_CATALOG[c].httpStatus,
+                    requestId: '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d',
+                    timestamp: '2026-11-07T02:30:00.000Z',
+                    instance,
+                  },
+                },
+              },
+            ]),
           ),
         },
       },
@@ -90,9 +106,29 @@ export const openApiSpec = {
       '',
       '## Error contract',
       '',
-      'Every error response is `{ "error": { "code": "<CODE>" } }` — a stable,',
-      'machine-readable code and nothing else. Clients map codes to their own',
-      'localized messages and per-code handling; the API never sends prose.',
+      'Every REST error response is an RFC 7807 style problem body keyed by a',
+      'stable, machine-readable code:',
+      '',
+      '```json',
+      '{',
+      '  "error": {',
+      '    "code": "T2001",',
+      '    "title": "Table not found",',
+      '    "status": 404,',
+      '    "requestId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",',
+      '    "timestamp": "2026-11-07T02:30:00.000Z",',
+      '    "instance": "/api/tables/code/ZZZZZZ"',
+      '  }',
+      '}',
+      '```',
+      '',
+      '`title` is the fixed catalog summary for the code — never free-form or',
+      'instance-specific detail; no exception text or internals ever appear.',
+      'Validation errors add code-only per-field `details`',
+      '(`[{ "field": "name", "code": "V4101" }]`). Clients key all display and',
+      'handling off `code` and render their own localized messages.',
+      'Socket.IO errors intentionally keep a compact shape —',
+      '`{ "error": { "code": "<CODE>" } }` — see `docs/api.md`.',
       '',
       '## Error codes',
       '',
@@ -154,7 +190,7 @@ export const openApiSpec = {
         },
         responses: {
           ...ok(obj({ user: userSchema }, ['user'])),
-          ...errorResponses([
+          ...errorResponses('/api/auth/dev-login', [
             ErrorCode.DEV_LOGIN_DISABLED,
             ErrorCode.VALIDATION_ERROR,
             ErrorCode.INTERNAL_ERROR,
@@ -168,7 +204,7 @@ export const openApiSpec = {
         summary: 'The currently signed-in user',
         responses: {
           ...ok(obj({ user: userSchema }, ['user'])),
-          ...errorResponses([ErrorCode.AUTH_REQUIRED, ErrorCode.ACCOUNT_NOT_FOUND]),
+          ...errorResponses('/api/auth/me', [ErrorCode.AUTH_REQUIRED, ErrorCode.ACCOUNT_NOT_FOUND]),
         },
       },
     },
@@ -200,7 +236,7 @@ export const openApiSpec = {
         },
         responses: {
           ...ok(obj({ table: tableSchema }, ['table'])),
-          ...errorResponses([ErrorCode.AUTH_REQUIRED, ErrorCode.ACCOUNT_NOT_FOUND]),
+          ...errorResponses('/api/tables', [ErrorCode.AUTH_REQUIRED, ErrorCode.ACCOUNT_NOT_FOUND]),
         },
       },
     },
@@ -219,7 +255,7 @@ export const openApiSpec = {
               ['table'],
             ),
           ),
-          ...errorResponses([
+          ...errorResponses('/api/tables/code/{code}', [
             ErrorCode.AUTH_REQUIRED,
             ErrorCode.ACCOUNT_NOT_FOUND,
             ErrorCode.TABLE_NOT_FOUND,
@@ -242,7 +278,7 @@ export const openApiSpec = {
               ['hosted', 'joined'],
             ),
           ),
-          ...errorResponses([ErrorCode.AUTH_REQUIRED, ErrorCode.ACCOUNT_NOT_FOUND]),
+          ...errorResponses('/api/tables/mine', [ErrorCode.AUTH_REQUIRED, ErrorCode.ACCOUNT_NOT_FOUND]),
         },
       },
     },
@@ -262,7 +298,7 @@ export const openApiSpec = {
               totalNet: { type: 'integer' },
             }),
           ),
-          ...errorResponses([ErrorCode.AUTH_REQUIRED, ErrorCode.ACCOUNT_NOT_FOUND]),
+          ...errorResponses('/api/me/stats', [ErrorCode.AUTH_REQUIRED, ErrorCode.ACCOUNT_NOT_FOUND]),
         },
       },
     },
@@ -273,7 +309,7 @@ export const openApiSpec = {
         security: [{ cookieSession: [] }],
         responses: {
           ...ok(obj({ sessions: { type: 'array', items: { type: 'object' } } }, ['sessions'])),
-          ...errorResponses([ErrorCode.AUTH_REQUIRED, ErrorCode.ACCOUNT_NOT_FOUND]),
+          ...errorResponses('/api/me/sessions', [ErrorCode.AUTH_REQUIRED, ErrorCode.ACCOUNT_NOT_FOUND]),
         },
       },
     },
@@ -295,7 +331,7 @@ export const openApiSpec = {
               ['session', 'hands'],
             ),
           ),
-          ...errorResponses([
+          ...errorResponses('/api/me/sessions/{id}', [
             ErrorCode.AUTH_REQUIRED,
             ErrorCode.ACCOUNT_NOT_FOUND,
             ErrorCode.PLAY_SESSION_NOT_FOUND,
@@ -316,6 +352,8 @@ export const openApiSpec = {
     schemas: {
       ErrorResponse: {
         type: 'object',
+        description:
+          'RFC 7807 style problem body. `title` is the fixed catalog summary for the code — never instance-specific detail.',
         properties: {
           error: {
             type: 'object',
@@ -324,6 +362,31 @@ export const openApiSpec = {
                 type: 'string',
                 description: 'Stable machine-readable error code (see the code table above)',
                 example: ErrorCode.TABLE_NOT_FOUND,
+              },
+              title: {
+                type: 'string',
+                description: 'Fixed English summary for the code, from the backend catalog',
+                example: 'Table not found',
+              },
+              status: {
+                type: 'integer',
+                description: 'HTTP status of this response, repeated in the body',
+                example: 404,
+              },
+              requestId: {
+                type: 'string',
+                description: 'Id of this request — the same value as the `x-request-id` response header',
+                example: '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d',
+              },
+              timestamp: {
+                type: 'string',
+                format: 'date-time',
+                description: 'When the error response was produced (ISO 8601)',
+              },
+              instance: {
+                type: 'string',
+                description: 'Path of the request that caused the error (no query string)',
+                example: '/api/tables/code/ZZZZZZ',
               },
               details: {
                 type: 'array',
@@ -338,7 +401,7 @@ export const openApiSpec = {
                 },
               },
             },
-            required: ['code'],
+            required: ['code', 'title', 'status', 'requestId', 'timestamp', 'instance'],
           },
         },
         required: ['error'],

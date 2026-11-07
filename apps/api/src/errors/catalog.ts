@@ -2,14 +2,20 @@ import { ErrorCode } from '@poker/shared';
 
 export interface ErrorSpec {
   httpStatus: number;
-  /** English, developer-facing message: used in logs and API docs only. */
+  /**
+   * Fixed English summary for the code: used as the RFC 7807 `title` in REST
+   * problem bodies, and in logs and API docs. It is a constant per code —
+   * never instance-specific detail (no exception text, parameters or ids).
+   * Clients still key all display and handling off the code alone and render
+   * their own localized text; the title exists for standards compliance and
+   * for humans reading raw responses or logs.
+   */
   message: string;
 }
 
 /**
  * Backend error catalog: every code the API may send, with its HTTP status
- * and an English message. The message NEVER goes on the wire — clients only
- * receive the code and render their own localized text for it.
+ * and its fixed English title.
  */
 export const ERROR_CATALOG: Record<ErrorCode, ErrorSpec> = {
   // A1xxx — auth & session

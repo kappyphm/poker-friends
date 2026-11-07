@@ -9,9 +9,10 @@ export interface User {
 
 /**
  * An error from the API, identified by its stable error code (see
- * lib/errors.ts for the code → message/handling catalog). The API never
- * sends human-readable prose, so there is deliberately no server message
- * here to display.
+ * lib/errors.ts for the code → message/handling catalog). REST error bodies
+ * also carry a fixed English catalog title plus trace fields (status,
+ * requestId, timestamp, instance) — deliberately not captured here: the UI
+ * only ever renders its own catalog text for the code.
  */
 export class ApiError extends Error {
   readonly status: number;

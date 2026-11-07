@@ -2,7 +2,7 @@ import { Server as SocketServer } from 'socket.io';
 import type { Server as HttpServer } from 'node:http';
 import type { RequestHandler } from 'express';
 import { eq } from 'drizzle-orm';
-import { ErrorCode, type ErrorResponseBody } from '@poker/shared';
+import { ErrorCode, type SocketErrorBody } from '@poker/shared';
 import { CLIENT_URL } from '../config/env.js';
 import { db, schema } from '../db/client.js';
 import { logger } from '../lib/logger.js';
@@ -21,7 +21,7 @@ export function attachSockets(httpServer: HttpServer, sessionMiddleware: Request
 
   io.on('connection', async (socket) => {
     const emitError = (code: ErrorCode) => {
-      const body: ErrorResponseBody = { error: { code } };
+      const body: SocketErrorBody = { error: { code } };
       socket.emit('error', body);
     };
     try {

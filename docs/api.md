@@ -6,31 +6,59 @@ The REST API is specified as an OpenAPI document served by the API itself:
 - Raw spec: `GET /api-docs.json`
 
 This file documents the **Socket.IO contract**, which OpenAPI cannot express,
-plus the error contract shared by both transports.
+plus the error contract both transports are built on.
 
 ## Error contract (REST + Socket.IO)
 
-Both transports speak exactly one error shape — a stable machine-readable
-code and nothing else:
+Both transports key everything off one stable machine-readable **code**,
+defined once in `packages/shared` (`src/errors.ts`): one domain letter +
+number — `A1xxx` auth/session, `T2xxx` table/lobby, `G3xxx` in-game actions,
+`V4xxx` validation, `S5xxx` server. Each side keeps its own catalog: the
+backend maps code → HTTP status + fixed English title, the web app maps
+code → Vietnamese message + a per-code handling strategy. Clients key all
+display and handling off the code alone.
+
+The body around the code **differs by transport**:
+
+**REST** wraps the code in an RFC 7807 style problem body:
 
 ```json
-{ "error": { "code": "T2001" } }
+{
+  "error": {
+    "code": "T2001",
+    "title": "Table not found",
+    "status": 404,
+    "requestId": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+    "timestamp": "2026-11-07T02:30:00.000Z",
+    "instance": "/api/tables/code/ZZZZZZ"
+  }
+}
 ```
 
-- Codes are defined once in `packages/shared` (`src/errors.ts`): one domain
-  letter + number — `A1xxx` auth/session, `T2xxx` table/lobby, `G3xxx`
-  in-game actions, `V4xxx` validation, `S5xxx` server.
-- The API **never sends a human-readable message**. Each side keeps its own
-  catalog: the backend maps code → HTTP status + English message (docs/logs),
-  the web app maps code → Vietnamese message + a per-code handling strategy.
+- `title` is the catalog's **fixed** English summary for the code — never
+  free-form or instance-specific detail. No exception text, stack traces or
+  DB errors ever appear in the body.
+- `status` repeats the response's HTTP status (from the catalog, e.g.
+  `A1001` → 401, `T2001` → 404). `requestId` matches the `x-request-id`
+  response header; `timestamp` is when the response was produced (ISO 8601);
+  `instance` is the request path (no query string).
+- Validation errors add per-field `details`, still code-only:
+  `{ "code": "V4001", "title": "Validation failed", "status": 400, "requestId": "…", "timestamp": "…", "instance": "/api/auth/dev-login", "details": [{ "field": "name", "code": "V4101" }] }`.
 - Only catalogued business/validation errors reach the client. Any
   unexpected server failure is logged server-side with the request id and
-  surfaces only as `S5000` (`INTERNAL_ERROR`).
-- Validation may add per-field details, still code-only:
-  `{ "error": { "code": "V4001", "details": [{ "field": "name", "code": "V4101" }] } }`.
-- REST errors also carry the catalog HTTP status (e.g. `A1001` → 401,
-  `T2001` → 404). The full code table (code, status, English meaning) is
-  generated into the OpenAPI document from the backend catalog.
+  surfaces only as `S5000` (`INTERNAL_ERROR`, title "Internal server error").
+
+**Socket.IO** intentionally keeps the compact shape — realtime events have
+no HTTP status or request line, so the problem-details fields do not apply:
+
+```json
+{ "error": { "code": "T2003" } }
+```
+
+(Validation over sockets may add the same code-only `details` array.)
+
+The full code table (code, status, English title) is generated into the
+OpenAPI document from the backend catalog.
 
 ## Socket.IO contract
 
@@ -39,8 +67,9 @@ Connection: same origin as the API, session cookie required
 `error` event with `A1001` (or `A1002` when the account is gone) and is
 disconnected.
 
-Errors from any event are emitted on the **`error`** event with the standard
-shape `{ "error": { "code": "<CODE>" } }`.
+Errors from any event are emitted on the **`error`** event with the compact
+socket shape `{ "error": { "code": "<CODE>" } }` (see the error contract
+above — unlike REST, socket errors carry no problem-details fields).
 
 ### Client → server events
 
@@ -60,7 +89,7 @@ shape `{ "error": { "code": "<CODE>" } }`.
 | ----- | ------- | ----------- |
 | `table:state` | `TableState` (below) | Full table state, personalized per viewer: each socket only ever receives its own hole cards; other players' cards appear only when shown at showdown. Emitted after every change. |
 | `table:join-hint` | `{ ok: true }` | Ack for the legacy `table:spectate` event. |
-| `error` | `{ error: { code } }` | Standard error shape (see the error contract above). |
+| `error` | `{ error: { code } }` | Compact socket error shape (see the error contract above). |
 
 ### `TableState` payload
 
