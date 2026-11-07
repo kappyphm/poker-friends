@@ -4,7 +4,7 @@ import passport from 'passport';
 import { createServer } from 'node:http';
 import swaggerUi from 'swagger-ui-express';
 import { CLIENT_URL, DEV_AUTH, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, NODE_ENV, PORT } from './config/env.js';
-import { logger } from './lib/logger.js';
+import { httpLogger, logger } from './lib/logger.js';
 import { sessionMiddleware } from './middleware/session.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -20,6 +20,7 @@ const app = express();
 const httpServer = createServer(app);
 
 app.use(requestIdMiddleware);
+app.use(httpLogger);
 app.use(cors({ origin: CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(sessionMiddleware);

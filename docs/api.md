@@ -60,6 +60,30 @@ no HTTP status or request line, so the problem-details fields do not apply:
 The full code table (code, status, English title) is generated into the
 OpenAPI document from the backend catalog.
 
+## Logging
+
+The API logs through one pino logger (`apps/api/src/lib/logger.ts`) plus
+pino-http access logging, both keyed by the request id assigned by the
+request-id middleware:
+
+- **Formats.** Production: one JSON object per line with an ISO 8601
+  `time` (`pino.stdTimeFunctions.isoTime`). Development: the same events
+  as single-line, colorized pino-pretty output. The level comes from
+  `LOG_LEVEL`.
+- **Access lines.** Each HTTP request logs `req` (`id`, `method`,
+  `url`), `res.statusCode`, `responseTime` (ms) and a top-level
+  `requestId` — the same id as the `x-request-id` response header and
+  the `requestId` field of REST error bodies, so any reported error can
+  be traced to its exact log lines. Level follows the outcome:
+  5xx → `error`, 4xx → `warn`, otherwise `info`.
+- **Muted paths.** `/api/health` and Socket.IO transport traffic are
+  never access-logged (Socket.IO is intercepted before Express; both
+  would flood the log without adding signal).
+- **Redaction.** The access serializers never include request headers.
+  App-level log calls additionally redact `cookie`, `authorization`,
+  `session` and `sessionId` (including under `req.headers`) to
+  `[REDACTED]`.
+
 ## Socket.IO contract
 
 Connection: same origin as the API, session cookie required
