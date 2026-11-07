@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { cardToString } from '@poker/shared';
 import { db, schema } from '../db/client.js';
+import { logger } from '../lib/logger.js';
 import { GameTable } from './game/GameTable.js';
 
 // ---------- live tables in memory ----------
@@ -128,7 +129,7 @@ export function publicState(t: GameTable, viewerId: string) {
         isTurn: turnP?.userId === p.userId,
         cards: mine ? p.holeCards.map(cardToString) : shown ? p.holeCards.map(cardToString) : null,
         cardsHidden: !mine && !shown && p.inHand && p.holeCards.length > 0,
-        handName: shown && t.lastResult?.showdownInfo?.[p.userId] ? t.lastResult.showdownInfo[p.userId] : null,
+        handRank: shown && t.lastResult?.showdownInfo?.[p.userId] ? t.lastResult.showdownInfo[p.userId] : null,
       };
     }),
     spectatorCount: t.spectators.size,
@@ -149,7 +150,7 @@ export function scheduleTurnTimer(t: GameTable) {
         // disconnected players fold/check immediately at their turn via same path
         t.autoAction(p.userId);
       }
-    } catch (e) { console.error('auto action failed', e); }
+    } catch (e) { logger.error({ err: e }, 'Auto action failed'); }
   }, p.connected ? 30_000 : 1_000);
   turnTimers.set(key, timer);
 }

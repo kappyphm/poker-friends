@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
-import { api } from '../lib/api';
+import { api, ApiError } from '../lib/api';
+import { presentError } from '../lib/errors';
 import { useAuth } from '../App';
 import type { TableState } from '../components/table/types.js';
 
@@ -20,7 +21,7 @@ export function useTableSocket(code: string | undefined) {
   useEffect(() => {
     api<{ table: { minBuyIn: number } }>(`/api/tables/code/${code}`)
       .then((d) => setBuyIn(Math.max(d.table.minBuyIn, d.table.minBuyIn * 5)))
-      .catch((e) => setError((e as Error).message));
+      .catch((e) => presentError(e, setError));
   }, [code]);
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export function useTableSocket(code: string | undefined) {
     const socket = io({ withCredentials: true });
     socketRef.current = socket;
     socket.on('table:state', (s: TableState) => setState(s));
-    socket.on('error', (e: { message: string }) => setError(e.message));
+    socket.on('error', (e: unknown) => presentError(ApiError.fromSocketPayload(e), setError));
     return () => { socket.disconnect(); };
   }, [user]);
 

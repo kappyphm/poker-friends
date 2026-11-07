@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { presentError } from '../lib/errors';
 import { useAuth } from '../App';
 
 export default function LoginPage() {
@@ -42,7 +43,7 @@ export default function LoginPage() {
                 await api('/api/auth/dev-login', { method: 'POST', body: JSON.stringify({ name }) });
                 await refresh();
                 navigate('/phong-cho');
-              } catch (e) { setError((e as Error).message); }
+              } catch (e) { presentError(e, setError); }
             }}
           >Vào chơi</button>
         </div>

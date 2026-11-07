@@ -1,6 +1,8 @@
 import type { Request, Response } from 'express';
 import { and, desc, eq, gte, lte } from 'drizzle-orm';
+import { ErrorCode } from '@poker/shared';
 import { db, schema } from '../db/client.js';
+import { AppError } from '../errors/AppError.js';
 import type { AuthedRequest } from '../middleware/requireAuth.js';
 
 export async function getMyStats(req: Request, res: Response) {
@@ -39,7 +41,7 @@ export async function getSessionDetail(req: Request, res: Response) {
   const rows = await db.select().from(schema.tableSessions)
     .where(and(eq(schema.tableSessions.id, String(req.params.id)), eq(schema.tableSessions.userId, user.id)));
   const s = rows[0];
-  if (!s) return res.status(404).json({ error: 'Không tìm thấy buổi chơi' });
+  if (!s) throw new AppError(ErrorCode.PLAY_SESSION_NOT_FOUND);
   const t = await db.select().from(schema.tables).where(eq(schema.tables.id, s.tableId));
   const handRows = await db.select().from(schema.hands).where(and(
     eq(schema.hands.tableId, s.tableId),

@@ -1,4 +1,4 @@
-import type { Card } from '@poker/shared';
+import type { Card, HandRankKey } from '@poker/shared';
 
 export type Street = 'preflop' | 'flop' | 'turn' | 'river' | 'showdown';
 export type ActionType = 'fold' | 'check' | 'call' | 'raise' | 'allin';
@@ -37,10 +37,10 @@ export interface HandRecord {
   handNumber: number;
   board: string[];
   totalPot: number;
-  winners: { userId: string; name: string; amount: number; handName: string | null }[];
+  winners: { userId: string; name: string; amount: number; handRank: HandRankKey | null }[];
   actionLog: ActionLogEntry[];
   holeCards: Record<string, string[]>;
-  showdownInfo: Record<string, string> | null; // userId -> hand name (only shown cards)
+  showdownInfo: Record<string, HandRankKey> | null; // userId -> hand rank key (only shown cards)
   participantIds: string[];
 }
 

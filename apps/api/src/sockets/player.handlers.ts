@@ -1,5 +1,8 @@
 import { eq } from 'drizzle-orm';
+import { ErrorCode } from '@poker/shared';
 import { db, schema } from '../db/client.js';
+import { errorCodeOf } from '../errors/AppError.js';
+import { logger } from '../lib/logger.js';
 import { broadcastState, getLiveTable } from '../services/tables.service.js';
 import type { SocketHandlerContext } from './context.js';
 
@@ -12,11 +15,11 @@ socket.on('player:rebuy', async (payload: { amount: number }) => {
     const t = getLiveTable(session.code);
     if (!t) return;
     const p = t.playerByUser(userId);
-    if (!p) return fail('Bạn chưa ngồi vào bàn');
-    if (t.handInProgress && p.inHand && !p.folded) return fail('Chỉ mua thêm chip giữa hai ván');
-    if (t.handInProgress && p.inHand && p.stack > 0) return fail('Chỉ mua thêm chip giữa hai ván hoặc khi hết chip');
+    if (!p) return fail(ErrorCode.NOT_SEATED);
+    if (t.handInProgress && p.inHand && !p.folded) return fail(ErrorCode.REBUY_NOT_ALLOWED);
+    if (t.handInProgress && p.inHand && p.stack > 0) return fail(ErrorCode.REBUY_NOT_ALLOWED);
     const amount = Number(payload.amount ?? 0);
-    if (!amount || amount <= 0) return fail('Số chip không hợp lệ');
+    if (!amount || amount <= 0) return fail(ErrorCode.INVALID_AMOUNT);
     p.stack += amount;
     if (p.stack > 0) p.sittingOut = false;
     const sess = await db.select().from(schema.tableSessions).where(eq(schema.tableSessions.id, p.sessionId));
@@ -27,7 +30,10 @@ socket.on('player:rebuy', async (payload: { amount: number }) => {
       }).where(eq(schema.tableSessions.id, p.sessionId));
     }
     broadcastState(t);
-  } catch (e) { console.error(e); fail('Có lỗi khi mua thêm chip'); }
+  } catch (e) {
+    if (errorCodeOf(e) === ErrorCode.INTERNAL_ERROR) logger.error({ err: e }, 'Failed to rebuy');
+    fail(errorCodeOf(e));
+  }
 });
 
 socket.on('player:action', async (payload: { action: string; amount?: number }) => {
@@ -36,7 +42,10 @@ socket.on('player:action', async (payload: { action: string; amount?: number }) 
   if (!t) return;
   try {
     t.applyAction(userId, payload.action as never, payload.amount);
-  } catch (e) { fail((e as Error).message); }
+  } catch (e) {
+    if (errorCodeOf(e) === ErrorCode.INTERNAL_ERROR) logger.error({ err: e }, 'Player action failed');
+    fail(errorCodeOf(e));
+  }
 });
 
 socket.on('player:sitout', async (payload: { sittingOut: boolean }) => {

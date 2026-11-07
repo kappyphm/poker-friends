@@ -1,5 +1,5 @@
 import { fmt } from '../../lib/format';
-import { ACTION_VI } from './labels.js';
+import { ACTION_VI, handRankLabel } from './labels.js';
 import type { PlayerState } from './types.js';
 
 export function SeatInfoBox({ player: p, mine, turnDeadline, timerPct }: {
@@ -24,7 +24,7 @@ export function SeatInfoBox({ player: p, mine, turnDeadline, timerPct }: {
         <div className="h-full bg-accent transition-all" style={{ width: `${timerPct}%` }} />
       </div>
     )}
-    {p.handName && <div className="text-[11px] text-win mt-0.5">{p.handName}</div>}
+    {p.handRank && <div className="text-[11px] text-win mt-0.5">{handRankLabel(p.handRank)}</div>}
     {p.lastAction && p.inHand && <div className="text-[11px] text-muted">{ACTION_VI[p.lastAction] ?? p.lastAction}</div>}
   </div>
   );

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { presentError } from '../lib/errors';
 import { fmt } from '../lib/format';
 import { useAuth } from '../App';
 
@@ -59,7 +60,7 @@ export default function LobbyPage() {
             try {
               const d = await api<{ table: TableRow }>('/api/tables', { method: 'POST', body: JSON.stringify(form) });
               navigate(`/ban/${d.table.code}`);
-            } catch (e) { setError((e as Error).message); }
+            } catch (e) { presentError(e, setError); }
           }}
         >Tạo bàn</button>
       </section>

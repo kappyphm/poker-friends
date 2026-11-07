@@ -1,24 +1,37 @@
 import type { Card } from './cards.js';
 
+/** Stable machine key for a hand category; clients map it to display text. */
+export type HandRankKey =
+  | 'high_card'
+  | 'pair'
+  | 'two_pair'
+  | 'three_of_a_kind'
+  | 'straight'
+  | 'flush'
+  | 'full_house'
+  | 'four_of_a_kind'
+  | 'straight_flush'
+  | 'royal_flush';
+
 export interface HandValue {
   category: number; // 0 high card .. 8 straight flush
+  categoryKey: HandRankKey;
   categoryName: string;
-  categoryNameVi: string;
   tiebreak: number[];
   score: number;
   bestFive: Card[];
 }
 
-const NAMES: [string, string][] = [
-  ['High Card', 'Bài cao'],
-  ['Pair', 'Một đôi'],
-  ['Two Pair', 'Hai đôi'],
-  ['Three of a Kind', 'Bộ ba (sám)'],
-  ['Straight', 'Sảnh'],
-  ['Flush', 'Thùng'],
-  ['Full House', 'Cù lũ'],
-  ['Four of a Kind', 'Tứ quý'],
-  ['Straight Flush', 'Thùng phá sảnh'],
+const NAMES: [string, HandRankKey][] = [
+  ['High Card', 'high_card'],
+  ['Pair', 'pair'],
+  ['Two Pair', 'two_pair'],
+  ['Three of a Kind', 'three_of_a_kind'],
+  ['Straight', 'straight'],
+  ['Flush', 'flush'],
+  ['Full House', 'full_house'],
+  ['Four of a Kind', 'four_of_a_kind'],
+  ['Straight Flush', 'straight_flush'],
 ];
 
 function scoreOf(category: number, tiebreak: number[]): number {
@@ -66,14 +79,13 @@ export function evaluate5(cards: Card[]): HandValue {
   } else if (groups[0].count === 2) {
     category = 1; tiebreak = [groups[0].rank, ...kickers([groups[0].rank])];
   }
-  const [categoryName, categoryNameVi] = NAMES[category];
-  // Royal flush display name
-  const name = category === 8 && straightHigh === 14 ? 'Royal Flush' : categoryName;
-  const nameVi = category === 8 && straightHigh === 14 ? 'Thùng phá sảnh lớn (Royal Flush)' : categoryNameVi;
+  const [categoryName, categoryKey] = NAMES[category];
+  // A royal flush is an ace-high straight flush with its own display key.
+  const isRoyal = category === 8 && straightHigh === 14;
   return {
     category,
-    categoryName: name,
-    categoryNameVi: nameVi,
+    categoryKey: isRoyal ? 'royal_flush' : categoryKey,
+    categoryName: isRoyal ? 'Royal Flush' : categoryName,
     tiebreak,
     score: scoreOf(category, tiebreak),
     bestFive: cards,

@@ -27,7 +27,7 @@ function connect(cookie) {
     const socket = io(API, { extraHeaders: { Cookie: cookie }, transports: ['websocket', 'polling'] });
     const client = { socket, state: null, states: [] };
     socket.on('table:state', (s) => { client.state = s; client.states.push(s); });
-    socket.on('error', (e) => console.log('socket error:', e.message));
+    socket.on('error', (e) => console.log('socket error:', e?.error?.code ?? e));
     socket.on('connect', () => resolve(client));
     socket.on('connect_error', reject);
     setTimeout(() => reject(new Error('connect timeout')), 10000);
