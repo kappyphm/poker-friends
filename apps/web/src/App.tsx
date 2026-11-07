@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
-import { api, type User } from './lib';
+import { api, type User } from './lib/api';
+import { useTheme, type Theme } from './hooks/useTheme';
 import LoginPage from './pages/LoginPage';
 import LobbyPage from './pages/LobbyPage';
 import TablePage from './pages/TablePage';
@@ -11,8 +12,6 @@ import ProfilePage from './pages/ProfilePage';
 
 const AuthCtx = createContext<{ user: User | null; refresh: () => Promise<void> }>({ user: null, refresh: async () => {} });
 export const useAuth = () => useContext(AuthCtx);
-
-export type Theme = 'dark' | 'light';
 
 function Shell({ children, theme, onToggleTheme }: { children: ReactNode; theme: Theme; onToggleTheme: () => void }) {
   const { user, refresh } = useAuth();
@@ -61,11 +60,7 @@ function Shell({ children, theme, onToggleTheme }: { children: ReactNode; theme:
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('pf-theme') === 'light' ? 'light' : 'dark'));
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem('pf-theme', theme);
-  }, [theme]);
+  const { theme, toggleTheme } = useTheme();
   const refresh = async () => {
     try {
       const d = await api<{ user: User }>('/api/auth/me');
@@ -77,7 +72,7 @@ export default function App() {
   return (
     <AuthCtx.Provider value={{ user, refresh }}>
       <BrowserRouter>
-        <Shell theme={theme} onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}>
+        <Shell theme={theme} onToggleTheme={toggleTheme}>
           <Routes>
             <Route path="/" element={user ? <Navigate to="/phong-cho" replace /> : <LoginPage />} />
             <Route path="/phong-cho" element={<LobbyPage />} />

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { api, fmt } from '../lib';
-import { PlayingCard } from '../components/cards';
+import { api } from '../lib/api';
+import { fmt } from '../lib/format';
+import { PlayingCard } from '../components/cards/PlayingCard';
 
 interface HandRow {
   id: string; handNumber: number; board: string[]; totalPot: number;
