@@ -20,6 +20,7 @@ export function RaiseModal({ raiseTo, onRaiseToChange, minRaise, maxRaise, canRa
       </div>
       <input
         type="number"
+        inputMode="numeric"
         className="w-full bg-inset border border-line rounded-2xl px-4 py-4 text-5xl font-bold text-center"
         value={raiseTo}
         min={minRaise}
